@@ -5,21 +5,88 @@ output:
     keep_md: true
 ---
 
+```{r}
 
-## Loading and preprocessing the data
+library( tidyverse )
+library( stargazer )
+library( TSstudio )
+library( plotly )
+library( lubridate )
+
+# Loading and preprocessing the data
+
+### Download the dataset to our folder
+download.file( "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", 
+               destfile = "repdata_data_activity.zip" )
+
+### Unzipping downloaded file
+unzip( "repdata_data_activity.zip" )
+
+### Reading downloaded file
+project_data <- read_csv( "activity.csv" )
+
+glimpse( project_data )
+
+# What is mean total number of steps taken per day?
+
+### Mean number of steps taken daily
+mean( na.omit( project_data$steps ) )
+
+### Median number of steps taken daily
+median( na.omit( project_data$steps ) )
+
+
+### Histogram of the total number of steps taken each day
+ggplot( project_data, aes( steps ) ) +
+        geom_histogram( )
+
+### Summary of dataset
+summary( project_data )
+
+new_data <- aggregate( steps ~ date, data = project_data, FUN = mean )
+
+glimpse( new_data )
+
+# What is the average daily activity pattern?
+
+### Time series plot
+ggplot( new_data, aes( date, steps ) ) +
+        geom_line() +
+        scale_x_date( ) + xlab( " " ) + ylab( "Steps" )
+
+### 5 minute interval that contains the maximum number of steps
+which.max( new_data$steps )
+
+new_data[ 4026, ]
+
+# Imputing missing values
+
+### Quantity of missing data
+sum( is.na( project_data ) )
 
 
 
-## What is mean total number of steps taken per day?
+# Are there differences in activity patterns between weekdays and weekends?
+project_data <- project_data %>%
+                mutate( day = factor( case_when( weekdays( date ) == "sábado" | weekdays( date ) == "domingo" ~ c( "weekend" ),
+                                            weekdays( date ) != "sábado" & weekdays( date ) != "domingo" ~ c( "weekday" ) ) ) )
 
+unique( project_data$day )
 
+weekday_data <- project_data %>% filter( day == "weekday" )
+weekend_data <- project_data %>% filter( day == "weekend" )
 
-## What is the average daily activity pattern?
+weekday_average <- aggregate( steps ~ date, data = weekday_data, FUN = mean )
+weekend_average <- aggregate( steps ~ date, data = weekend_data, FUN = mean )
 
+all_averages <- merge( weekday_average, weekend_average, all = TRUE )
 
+all_averages <- all_averages %>%
+                mutate( day = factor( case_when( weekdays( date ) == "sábado" | weekdays( date ) == "domingo" ~ c( "weekend" ),
+                                                 weekdays( date ) != "sábado" & weekdays( date ) != "domingo" ~ c( "weekday" ) ) ) )
 
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+ggplot( data = all_averages, aes( date, steps ) ) +
+        geom_line() +
+        scale_x_date( ) + xlab( " " ) + ylab( "Steps" ) +
+        facet_wrap( ~ day )
+```
